@@ -1,0 +1,157 @@
+@page "/events"
+@using EventEase.Models
+@inject EventService EventService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+
+<PageTitle>Events</PageTitle>
+
+<h1 class="mb-4">Events</h1>
+
+<EditForm Model="SearchModel" OnValidSubmit="ApplySearchAsync" FormName="EventSearch">
+    <div class="row g-2 align-items-end mb-3">
+        <div class="col-sm-8 col-md-6">
+            <label class="form-label">Search</label>
+            <InputText class="form-control" @bind-Value="SearchModel.SearchTerm" placeholder="Title, description, or location" />
+        </div>
+        <div class="col-sm-4 col-md-3">
+            <button class="btn btn-primary w-100" type="submit">Search</button>
+        </div>
+        <div class="col-sm-4 col-md-3">
+            <button class="btn btn-outline-secondary w-100" type="button" @onclick="ClearSearch">Clear</button>
+        </div>
+    </div>
+</EditForm>
+
+<AlertMessage Message="@StatusMessage" Type="@StatusType" />
+
+@if (IsLoading)
+{
+    <p>Loading events...</p>
+}
+else if (Events.Count == 0)
+{
+    <div class="alert alert-info">No events found. Add your first event.</div>
+}
+else
+{
+    foreach (var item in Events)
+    {
+        <EventCard Event="item" OnDelete="HandleDeleteAsync" />
+    }
+
+    <nav aria-label="Event pagination">
+        <ul class="pagination">
+            <li class="page-item @(CurrentPage == 1 ? "disabled" : string.Empty)">
+                <NavLink class="page-link" href="@GetPageLink(CurrentPage - 1)">Previous</NavLink>
+            </li>
+            @for (var pageNumber = 1; pageNumber <= TotalPages; pageNumber++)
+            {
+                <li class="page-item @(pageNumber == CurrentPage ? "active" : string.Empty)">
+                    <NavLink class="page-link" href="@GetPageLink(pageNumber)">@pageNumber</NavLink>
+                </li>
+            }
+            <li class="page-item @(CurrentPage == TotalPages ? "disabled" : string.Empty)">
+                <NavLink class="page-link" href="@GetPageLink(CurrentPage + 1)">Next</NavLink>
+            </li>
+        </ul>
+    </nav>
+}
+
+@code {
+    private const int PageSize = 10;
+
+    [SupplyParameterFromQuery]
+    public int? Page { get; set; }
+
+    [SupplyParameterFromQuery(Name = "search")]
+    public string? Search { get; set; }
+
+    private List<Event> Events { get; set; } = new();
+    private int CurrentPage { get; set; } = 1;
+    private int TotalPages { get; set; } = 1;
+    private bool IsLoading { get; set; }
+    private string? StatusMessage { get; set; }
+    private string StatusType { get; set; } = "success";
+    private SearchRequest SearchModel { get; set; } = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        CurrentPage = Page.GetValueOrDefault(1);
+        if (CurrentPage < 1)
+        {
+            CurrentPage = 1;
+        }
+
+        SearchModel.SearchTerm = Search;
+        await LoadEventsAsync();
+    }
+
+    private async Task LoadEventsAsync()
+    {
+        IsLoading = true;
+        var result = await EventService.GetPagedAsync(CurrentPage, PageSize, Search);
+        Events = result.Items.ToList();
+        TotalPages = Math.Max(1, (int)Math.Ceiling(result.TotalCount / (double)PageSize));
+        if (CurrentPage > TotalPages)
+        {
+            CurrentPage = TotalPages;
+            result = await EventService.GetPagedAsync(CurrentPage, PageSize, Search);
+            Events = result.Items.ToList();
+        }
+        IsLoading = false;
+    }
+
+    private async Task HandleDeleteAsync(int id)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", "Delete this event?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var deleted = await EventService.DeleteAsync(id);
+        StatusType = deleted ? "success" : "danger";
+        StatusMessage = deleted ? "Event deleted successfully." : "Event not found.";
+        await LoadEventsAsync();
+    }
+
+    private string GetPageLink(int page)
+    {
+        if (page < 1)
+        {
+            page = 1;
+        }
+        if (string.IsNullOrWhiteSpace(Search))
+        {
+            return $"/events?page={page}";
+        }
+        var encoded = Uri.EscapeDataString(Search);
+        return $"/events?page={page}&search={encoded}";
+    }
+
+    private Task ApplySearchAsync()
+    {
+        var trimmed = SearchModel.SearchTerm?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            NavigationManager.NavigateTo("/events");
+            return Task.CompletedTask;
+        }
+
+        var encoded = Uri.EscapeDataString(trimmed);
+        NavigationManager.NavigateTo($"/events?search={encoded}");
+        return Task.CompletedTask;
+    }
+
+    private void ClearSearch()
+    {
+        SearchModel.SearchTerm = string.Empty;
+        NavigationManager.NavigateTo("/events");
+    }
+
+    private sealed class SearchRequest
+    {
+        public string? SearchTerm { get; set; }
+    }
+}

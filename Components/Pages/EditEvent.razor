@@ -1,0 +1,57 @@
+@page "/events/edit/{Id:int}"
+@using EventEase.Models
+@inject EventService EventService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit Event</PageTitle>
+
+<h1 class="mb-4">Edit Event</h1>
+
+@if (IsLoading)
+{
+    <p>Loading event...</p>
+}
+else if (EventModel is null)
+{
+    <div class="alert alert-warning">Event not found.</div>
+    <NavLink href="/events">Back to Events</NavLink>
+}
+else
+{
+    <AlertMessage Message="@StatusMessage" Type="@StatusType" />
+    <EventForm Model="EventModel" OnValidSubmit="HandleSubmitAsync" SubmitLabel="Save Changes" IsBusy="@IsSaving" FormName="EditEventForm" />
+    <div class="mt-3">
+        <NavLink href="/events">Back to Events</NavLink>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Event? EventModel { get; set; }
+    private bool IsLoading { get; set; } = true;
+    private bool IsSaving { get; set; }
+    private string? StatusMessage { get; set; }
+    private string StatusType { get; set; } = "success";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        EventModel = await EventService.GetByIdAsync(Id);
+        IsLoading = false;
+    }
+
+    private async Task HandleSubmitAsync()
+    {
+        if (EventModel is null)
+        {
+            return;
+        }
+
+        IsSaving = true;
+        var updated = await EventService.UpdateAsync(EventModel);
+        IsSaving = false;
+
+        StatusType = updated ? "success" : "danger";
+        StatusMessage = updated ? "Event updated successfully." : "Event not found.";
+    }
+}

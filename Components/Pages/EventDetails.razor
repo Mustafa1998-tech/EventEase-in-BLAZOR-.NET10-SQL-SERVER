@@ -1,0 +1,58 @@
+@page "/events/{Id:int}"
+@using EventEase.Models
+@inject EventService EventService
+
+<PageTitle>Event Details</PageTitle>
+
+<h1 class="mb-4">Event Details</h1>
+
+@if (IsLoading)
+{
+    <p>Loading event...</p>
+}
+else if (EventModel is null)
+{
+    <div class="alert alert-warning">Event not found.</div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h3 class="card-title">@EventModel.Title</h3>
+            <div class="text-muted mb-2">@EventModel.EventDate.ToString("D")</div>
+
+            @if (!string.IsNullOrWhiteSpace(EventModel.Location))
+            {
+                <div class="mb-2"><strong>Location:</strong> @EventModel.Location</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(EventModel.Description))
+            {
+                <p>@EventModel.Description</p>
+            }
+
+            <div class="text-muted small">Created: @EventModel.CreatedAt.ToLocalTime().ToString("g")</div>
+            @if (EventModel.UpdatedAt.HasValue)
+            {
+                <div class="text-muted small">Updated: @EventModel.UpdatedAt.Value.ToLocalTime().ToString("g")</div>
+            }
+        </div>
+    </div>
+}
+
+<div class="mt-3">
+    <NavLink href="/events">Back to Events</NavLink>
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Event? EventModel { get; set; }
+    private bool IsLoading { get; set; } = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        EventModel = await EventService.GetByIdAsync(Id);
+        IsLoading = false;
+    }
+}

@@ -1,0 +1,35 @@
+@using EventEase.Models
+
+<div class="card mb-3 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h5 class="card-title mb-1">@Event.Title</h5>
+                <div class="text-muted small">@Event.EventDate.ToString("D")</div>
+                @if (!string.IsNullOrWhiteSpace(Event.Location))
+                {
+                    <div class="text-muted small">@Event.Location</div>
+                }
+            </div>
+            <span class="badge text-bg-secondary">#@Event.Id</span>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Event.Description))
+        {
+            <p class="card-text mt-2">@Event.Description</p>
+        }
+
+        <div class="d-flex gap-2 mt-3">
+            <NavLink class="btn btn-outline-primary btn-sm" href="@($"/events/{Event.Id}")">View Details</NavLink>
+            <NavLink class="btn btn-outline-secondary btn-sm" href="@($"/events/edit/{Event.Id}")">Edit</NavLink>
+            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => OnDelete.InvokeAsync(Event.Id)">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public Event Event { get; set; } = new();
+    [Parameter] public EventCallback<int> OnDelete { get; set; }
+}

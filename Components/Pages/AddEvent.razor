@@ -1,0 +1,37 @@
+@page "/events/add"
+@using EventEase.Models
+@inject EventService EventService
+
+<PageTitle>Add Event</PageTitle>
+
+<h1 class="mb-4">Add Event</h1>
+
+<AlertMessage Message="@StatusMessage" Type="@StatusType" />
+
+<EventForm Model="EventModel" OnValidSubmit="HandleSubmitAsync" SubmitLabel="Create Event" IsBusy="@IsSaving" FormName="AddEventForm" />
+
+<div class="mt-3">
+    <NavLink href="/events">Back to Events</NavLink>
+</div>
+
+@code {
+    private Event EventModel { get; set; } = new()
+    {
+        EventDate = DateTime.Today
+    };
+
+    private bool IsSaving { get; set; }
+    private string? StatusMessage { get; set; }
+    private string StatusType { get; set; } = "success";
+
+    private async Task HandleSubmitAsync()
+    {
+        IsSaving = true;
+        await EventService.CreateAsync(EventModel);
+        IsSaving = false;
+
+        StatusType = "success";
+        StatusMessage = "Event created successfully.";
+        EventModel = new Event { EventDate = DateTime.Today };
+    }
+}

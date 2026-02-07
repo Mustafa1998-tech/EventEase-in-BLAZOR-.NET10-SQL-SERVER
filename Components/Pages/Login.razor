@@ -1,0 +1,60 @@
+@page "/login"
+@using System.ComponentModel.DataAnnotations
+@inject UserService UserService
+
+<PageTitle>Login</PageTitle>
+
+<h1 class="mb-4">Login</h1>
+
+<AlertMessage Message="@StatusMessage" Type="@StatusType" />
+
+<EditForm Model="Model" OnValidSubmit="HandleLoginAsync" FormName="LoginForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <InputText class="form-control" @bind-Value="Model.Email" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Password</label>
+        <InputText class="form-control" @bind-Value="Model.Password" type="password" />
+    </div>
+
+    <button class="btn btn-primary" type="submit" disabled="@IsBusy">Login</button>
+</EditForm>
+
+@code {
+    private LoginModel Model { get; set; } = new();
+    private bool IsBusy { get; set; }
+    private string? StatusMessage { get; set; }
+    private string StatusType { get; set; } = "success";
+
+    private async Task HandleLoginAsync()
+    {
+        IsBusy = true;
+        var user = await UserService.ValidateCredentialsAsync(Model.Email, Model.Password);
+        IsBusy = false;
+
+        if (user is null)
+        {
+            StatusType = "danger";
+            StatusMessage = "Invalid email or password.";
+            return;
+        }
+
+        StatusType = "success";
+        StatusMessage = $"Welcome, {user.Name}.";
+    }
+
+    private sealed class LoginModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public string Password { get; set; } = string.Empty;
+    }
+}
