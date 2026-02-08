@@ -64,7 +64,7 @@ Update the connection string and seed admin in:
 Example:
 ```
 "ConnectionStrings": {
-  "DefaultConnection": "Server=DESKTOP-OKFV1DJ;Database=EventEaseDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
+  "DefaultConnection": "Server=DESKTOP;Database=EventEaseDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
 },
 "SeedAdmin": {
   "Name": "Admin",
